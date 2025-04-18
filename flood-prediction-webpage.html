@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Prediction Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            background-color: #1e88e5;
+            color: white;
+            border-radius: 8px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .input-section {
+            flex: 1;
+            min-width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .results-section {
+            flex: 2;
+            min-width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        .risk-indicator {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .low-risk {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+        .medium-risk {
+            background-color: #fff9c4;
+            color: #f57f17;
+        }
+        .high-risk {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .map-container {
+            height: 400px;
+            margin-top: 20px;
+        }
+        .historical-data {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Flood Prediction Tool</h1>
+        <p>Analyze flood risks in your area based on location data and environmental factors</p>
+    </header>
+
+    <div class="container">
+        <div class="input-section">
+            <h2>Location Information</h2>
+            <form id="flood-prediction-form">
+                <div class="form-group">
+                    <label for="location-type">Location Type:</label>
+                    <select id="location-type">
+                        <option value="coordinates">GPS Coordinates</option>
+                        <option value="address">Address</option>
+                        <option value="zipcode">ZIP/Postal Code</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="coordinates-input">
+                    <label for="latitude">Latitude:</label>
+                    <input type="number" id="latitude" step="0.000001" placeholder="e.g., 40.7128">
+                    
+                    <label for="longitude" style="margin-top: 10px;">Longitude:</label>
+                    <input type="number" id="longitude" step="0.000001" placeholder="e.g., -74.0060">
+                </div>
+
+                <div class="form-group hidden" id="address-input">
+                    <label for="address">Full Address:</label>
+                    <input type="text" id="address" placeholder="Enter street address, city, state">
+                </div>
+
+                <div class="form-group hidden" id="zipcode-input">
+                    <label for="zipcode">ZIP/Postal Code:</label>
+                    <input type="text" id="zipcode" placeholder="Enter ZIP/Postal code">
+                </div>
+
+                <div class="form-group">
+                    <label for="time-period">Time Period:</label>
+                    <select id="time-period">
+                        <option value="24h">Next 24 hours</option>
+                        <option value="week">Next week</option>
+                        <option value="month">Next month</option>
+                        <option value="season">This season</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="data-sources">Additional Data Sources:</label>
+                    <select id="data-sources" multiple size="3">
+                        <option value="rainfall">Recent Rainfall Data</option>
+                        <option value="river">River Level Data</option>
+                        <option value="soil">Soil Saturation Data</option>
+                        <option value="weather">Weather Forecast</option>
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+
+                <button type="button" id="predict-button">Predict Flood Risk</button>
+            </form>
+        </div>
+
+        <div class="results-section">
+            <h2>Prediction Results</h2>
+            <div id="initial-message">
+                <p>Enter location details and click "Predict Flood Risk" to see flood prediction results.</p>
+            </div>
+            
+            <div id="results-content" class="hidden">
+                <div class="risk-indicator" id="risk-level">
+                    Flood Risk Level: Calculating...
+                </div>
+                
+                <div class="map-container">
+                    <img src="/api/placeholder/800/400" alt="Location map with flood risk overlay" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Probability of Flooding Over Time</h3>
+                    <img src="/api/placeholder/800/300" alt="Flood probability chart" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                
+                <div class="historical-data">
+                    <h3>Historical Flood Data</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th>Event</th>
+                                <th>Severity</th>
+                                <th>Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historical-data-body">
+                            <!-- Historical data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="recommendations">
+                    <h3>Recommendations</h3>
+                    <ul id="recommendations-list">
+                        <!-- Recommendations will be inserted here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>This tool provides estimates based on available data. Always follow local emergency management guidance.</p>
+        <p>© 2025 Flood Prediction System</p>
+    </footer>
+
+    <script>
+        // Show/hide input fields based on location type selection
+        document.getElementById('location-type').addEventListener('change', function() {
+            const locationType = this.value;
+            document.getElementById('coordinates-input').classList.add('hidden');
+            document.getElementById('address-input').classList.add('hidden');
+            document.getElementById('zipcode-input').classList.add('hidden');
+            
+            document.getElementById(locationType + '-input').classList.remove('hidden');
+        });
+
+        // Simulate flood prediction when button is clicked
+        document.getElementById('predict-button').addEventListener('click', function() {
+            // Hide initial message and show results
+            document.getElementById('initial-message').classList.add('hidden');
+            document.getElementById('results-content').classList.remove('hidden');
+            
+            // In a real application, you would call your flood prediction model API here
+            // For demo purposes, we'll simulate a prediction with random data
+            simulateFloodPrediction();
+        });
+
+        function simulateFloodPrediction() {
+            // Get input values
+            const locationType = document.getElementById('location-type').value;
+            let locationString = "";
+            
+            if (locationType === 'coordinates') {
+                const lat = document.getElementById('latitude').value;
+                const lng = document.getElementById('longitude').value;
+                locationString = `${lat}, ${lng}`;
+            } else if (locationType === 'address') {
+                locationString = document.getElementById('address').value;
+            } else {
+                locationString = document.getElementById('zipcode').value;
+            }
+            
+            const timePeriod = document.getElementById('time-period').value;
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Generate random risk level for demo (Low, Medium, High)
+                const riskLevels = ['Low', 'Medium', 'High'];
+                const randomRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+                
+                // Update risk indicator
+                const riskIndicator = document.getElementById('risk-level');
+                riskIndicator.textContent = `Flood Risk Level: ${randomRisk}`;
+                riskIndicator.className = 'risk-indicator';
+                
+                if (randomRisk === 'Low') {
+                    riskIndicator.classList.add('low-risk');
+                } else if (randomRisk === 'Medium') {
+                    riskIndicator.classList.add('medium-risk');
+                } else {
+                    riskIndicator.classList.add('high-risk');
+                }
+                
+                // Add sample historical data
+                const historicalData = [
+                    { year: '2023', event: 'Spring Flooding', severity: 'Moderate', impact: 'Minor property damage' },
+                    { year: '2021', event: 'Hurricane Aftermath', severity: 'Severe', impact: 'Major road closures' },
+                    { year: '2019', event: 'Heavy Rainfall', severity: 'Moderate', impact: 'Localized flooding' },
+                    { year: '2017', event: 'River Overflow', severity: 'Mild', impact: 'Minimal disruption' }
+                ];
+                
+                const tableBody = document.getElementById('historical-data-body');
+                tableBody.innerHTML = '';
+                
+                historicalData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.year}</td>
+                        <td>${item.event}</td>
+                        <td>${item.severity}</td>
+                        <td>${item.impact}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // Generate recommendations based on risk level
+                const recommendationsList = document.getElementById('recommendations-list');
+                recommendationsList.innerHTML = '';
+                
+                const recommendations = [];
+                
+                if (randomRisk === 'Low') {
+                    recommendations.push(
+                        'Monitor local weather forecasts for changes',
+                        'Ensure your emergency kit is prepared',
+                        'Check your property insurance coverage'
+                    );
+                } else if (randomRisk === 'Medium') {
+                    recommendations.push(
+                        'Stay alert to emergency warnings',
+                        'Prepare your property with sandbags if available',
+                        'Move valuable items to higher levels',
+                        'Review evacuation routes'
+                    );
+                } else {
+                    recommendations.push(
+                        'Consider evacuation if advised by local authorities',
+                        'Move immediately to higher ground',
+                        'Avoid walking or driving through flood waters',
+                        'Disconnect electrical appliances',
+                        'Follow emergency broadcast instructions'
+                    );
+                }
+                
+                recommendations.forEach(rec => {
+                    const li = document.createElement('li');
+                    li.textContent = rec;
+                    recommendationsList.appendChild(li);
+                });
+                
+            }, 1500); // Simulate 1.5 second processing time
+        }
+    </script>
+</body>
+</html>
